@@ -1,5 +1,21 @@
 use std::ops::Add;
 
+pub enum Reg {
+    A,
+    F,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    BC,
+    DE,
+    HL,
+    SP,
+    PC,
+}
+
 pub enum Byte {
     LEFT, RIGHT
 }

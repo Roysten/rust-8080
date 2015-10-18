@@ -1,3 +1,4 @@
+mod macros;
 mod instruction;
 mod register;
 mod cpu;
