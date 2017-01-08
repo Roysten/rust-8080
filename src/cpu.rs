@@ -69,15 +69,18 @@ impl CPU {
     fn handle_instruction(&mut self, instruction_data: (u16, Instruction)) {
         let (inc_pc, instruction) = instruction_data;
         match instruction {
-            Ld(args) => self.ld(args),
+            Mov(args) => self.mov(args),
             Add(args) => self.add(args),
+            Adc(args) => self.adc(args),
+            Sub(args) => self.sub(args),
+            Sbc(args) => self.sbc(args),
             _ => (),
         }
 
         self.pc += inc_pc;
     }
 
-    fn ld(&mut self, args: InstructionArgs) {
+    fn mov(&mut self, args: InstructionArgs) {
         match args {
             RegisterNumber(reg, val) => self.write_register_u8(reg, val as u8),
             _ => panic!("unhandled add operation {:?}", args),
@@ -86,15 +89,73 @@ impl CPU {
 
     fn add(&mut self, args: InstructionArgs) {
         match args {
-            RegisterRegister(reg_1, reg_2) => {
-                let values = (self.read_register_u8(reg_1), self.read_register_u8(reg_2));
-                if values.0 as usize + values.1 as usize > register::MAX_WORD_SIZE {
+            Register(reg) => {
+                let (val_1, val_2) = (self.read_register_u8(Reg::A), self.read_register_u8(reg));
+                let (new_value, carry) = val_1.overflowing_add(val_2);
+                if carry {
                     self.flags[Flag::Carry as usize] = true;
                 }
-                self.write_register_u8(reg_1, values.0 + values.1);
+                self.update_flags_u8(new_value);
+
+                self.write_register_u8(Reg::A, new_value);
             }
             _ => panic!("unhandled add operation {:?}", args),
         }
+    }
+
+    fn adc(&mut self, args: InstructionArgs) {
+        match args {
+            Register(reg) => {
+                let (val_1, val_2) = (self.read_register_u8(Reg::A), self.read_register_u8(reg));
+                let (new_value, carry) = val_1.overflowing_add(val_2 + self.flags[Flag::Carry as usize] as u8);
+                if carry {
+                    self.flags[Flag::Carry as usize] = true;
+                }
+                self.update_flags_u8(new_value);
+
+                self.write_register_u8(Reg::A, new_value);
+            }
+            _ => panic!("unhandled add operation {:?}", args),
+        }
+    }
+
+    fn sub(&mut self, args: InstructionArgs) {
+        match args {
+            Register(reg) => {
+                let (val_1, val_2) = (self.read_register_u8(Reg::A), self.read_register_u8(reg));
+                let (new_value, carry) = val_1.overflowing_sub(val_2);
+                if carry {
+                    self.flags[Flag::Carry as usize] = true;
+                }
+                self.update_flags_u8(new_value);
+
+                self.write_register_u8(Reg::A, new_value);
+            }
+            _ => panic!("unhandled add operation {:?}", args),
+        }
+    }
+
+    fn sbc(&mut self, args: InstructionArgs) {
+        match args {
+            Register(reg) => {
+                let (val_1, val_2) = (self.read_register_u8(Reg::A), self.read_register_u8(reg));
+                let (new_value, carry) = val_1.overflowing_sub(val_2 - self.flags[Flag::Carry as usize] as u8);
+                if carry {
+                    self.flags[Flag::Carry as usize] = true;
+                }
+                self.update_flags_u8(new_value);
+
+                self.write_register_u8(Reg::A, new_value);
+            }
+            _ => panic!("unhandled add operation {:?}", args),
+        }
+    }
+
+    fn update_flags_u8(&mut self, value: u8) {
+        self.flags[Flag::Sign as usize] = value >> 7 == 1;
+        self.flags[Flag::Zero as usize] = value == 0;
+        self.flags[Flag::Parity as usize] = value.count_ones() % 2 == 0;
+        //TODO: AuxCarry flag
     }
 
     fn read_register_u8(&self, register: Reg) -> u8 {

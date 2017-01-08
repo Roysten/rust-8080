@@ -1,4 +1,4 @@
 [package]
-name = "z80"
+name = "rust-8080"
 version = "0.1.0"
 authors = ["Roy van der Vegt <royvandervegt@gmail.com>"]
